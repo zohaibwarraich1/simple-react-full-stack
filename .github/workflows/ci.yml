@@ -40,7 +40,7 @@ jobs:
 
       - name: Check Health Endpoint
         run: |
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://13.201.129.200/node-app-1/api/health)
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://project-abacus-alb-453577078.ap-south-1.elb.amazonaws.com/node-app-1/api/health)
           echo "Received status code: $STATUS_CODE"
           
           if [ "$STATUS_CODE" -eq 500 ]; then
