@@ -1,0 +1,24 @@
+name: Node.js CI Pipeline
+
+on:
+  push:
+    branch: [main]
+
+jobs:
+  build:
+    name: Install dependencies and build application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
