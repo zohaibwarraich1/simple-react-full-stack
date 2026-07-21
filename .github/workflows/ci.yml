@@ -25,3 +25,27 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+  test-healthcheck:
+    name: Test to check the health of application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Check Health Endpoint
+        run: |
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://13.201.129.200/node-app-1/api/health)
+          echo "Received status code: $STATUS_CODE"
+          
+          if [ "$STATUS_CODE" -eq 500 ]; then
+            echo "Health check failed with status code 500! Terminating pipeline."
+            exit 1
+          else
+            echo "Health check passed with status code $STATUS_CODE."
+          fi
