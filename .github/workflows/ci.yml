@@ -97,7 +97,7 @@ jobs:
 
   deploy:
     name: Deploy on EC2 via SSM
-    needs: test-healthcheck
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       id-token: write
