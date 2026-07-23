@@ -23,11 +23,6 @@ jobs:
 
       - name: Run Build via SSM
         run: |
-          # Consider running these commands in a temporary directory on the server
-          # if you want to avoid breaking the live application during the test phase.
-          # For now, it runs in the main project directory.
-          
-          # Fetch the first instance ID matching the tag
           INSTANCE_ID=$(aws ssm describe-instance-information \
             --filters "Key=tag:purpose,Values=abacus-task-1" \
             --query "InstanceInformationList[0].InstanceId" \
@@ -111,11 +106,6 @@ jobs:
 
       - name: Run Deployment via SSM
         run: |
-          # Since the build and test already happened in the previous stages,
-          # you only need to run your deployment/restart command here.
-          # Change "pm2 restart all" to whatever command starts your Node app.
-
-          # Fetch all instance IDs matching the tag
           INSTANCE_IDS=$(aws ssm describe-instance-information \
             --filters "Key=tag:purpose,Values=abacus-task-1" \
             --query "InstanceInformationList[*].InstanceId" \
@@ -131,7 +121,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids $INSTANCE_IDS \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["cd /var/abacus-projects/simple-react-full-stack","pm2 restart node-app-1"]}' \
+            --parameters '{"commands":["cd /var/abacus-projects/simple-react-full-stack","pm2 restart node-app-1 || pm2 start src/server/index.js --name node-app-1"]}' \
             --query "Command.CommandId" \
             --output text)
 
