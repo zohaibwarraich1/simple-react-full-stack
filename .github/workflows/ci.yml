@@ -77,90 +77,102 @@ jobs:
             exit 1
           fi
 
-  test-healthcheck:
-    name: Test to check the health of application
-    needs: build
-    runs-on: ubuntu-latest
-    steps: 
-      - name: Check Health Endpoint
-        run: |
-          # Consider changing the IP if it needs to match your EC2 instance dynamically
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://13.200.155.57/node-app-1/api/health)
-          echo "Received status code: $STATUS_CODE"
+  # test-healthcheck:
+  #   name: Test to check the health of application
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps: 
+  #     - name: Check Health Endpoint
+  #       run: |
+  #         # Consider changing the IP if it needs to match your EC2 instance dynamically
+  #         STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://13.200.155.57/node-app-1/api/health)
+  #         echo "Received status code: $STATUS_CODE"
           
-          if [ "$STATUS_CODE" -eq 500 ]; then
-            echo "Health check failed with status code 500! Terminating pipeline."
+  #         if [ "$STATUS_CODE" -eq 500 ]; then
+  #           echo "Health check failed with status code 500! Terminating pipeline."
+  #           exit 1
+  #         else
+  #           echo "Health check passed with status code $STATUS_CODE."
+  #         fi
+
+  deploy:
+    name: Deploy on EC2 via SSM
+    needs: test-healthcheck
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::399894608127:role/github-actions-ssm
+          aws-region: ap-south-1
+
+      - name: Run Deployment via SSM
+        run: |
+          # Since the build and test already happened in the previous stages,
+          # you only need to run your deployment/restart command here.
+          # Change "pm2 restart all" to whatever command starts your Node app.
+
+          # Fetch all instance IDs matching the tag
+          INSTANCE_IDS=$(aws ssm describe-instance-information \
+            --filters "Key=tag:purpose,Values=abacus-task-1" \
+            --query "InstanceInformationList[*].InstanceId" \
+            --output text)
+
+          if [ "$INSTANCE_IDS" == "None" ] || [ -z "$INSTANCE_IDS" ]; then
+            echo "Error: No instances found with the specified tag."
             exit 1
-          else
-            echo "Health check passed with status code $STATUS_CODE."
           fi
 
-  # deploy:
-  #   name: Deploy on EC2 via SSM
-  #   needs: test-healthcheck
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     id-token: write
-  #     contents: read
-  #   steps:
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         role-to-assume: arn:aws:iam::399894608127:role/github-actions-ssm
-  #         aws-region: ap-south-1
+          echo "Targeting Instances: $INSTANCE_IDS"
 
-  #     - name: Run Deployment via SSM
-  #       run: |
-  #         # Since the build and test already happened in the previous stages,
-  #         # you only need to run your deployment/restart command here.
-  #         # Change "pm2 restart all" to whatever command starts your Node app.
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids $INSTANCE_IDS \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{"commands":["cd /var/abacus-projects/simple-react-full-stack","pm2 restart node-app-1"]}' \
+            --query "Command.CommandId" \
+            --output text)
 
-  #         # Fetch the first instance ID matching the tag
-  #         INSTANCE_ID=$(aws ssm describe-instance-information \
-  #           --filters "Key=tag:purpose,Values=abacus-task-1" \
-  #           --query "InstanceInformationList[0].InstanceId" \
-  #           --output text)
+          echo "Command ID: $COMMAND_ID"
 
-  #         if [ "$INSTANCE_ID" == "None" ] || [ -z "$INSTANCE_ID" ]; then
-  #           echo "Error: No instance found with the specified tag."
-  #           exit 1
-  #         fi
+          HAS_ERROR=0
 
-  #         echo "Targeting Instance: $INSTANCE_ID"
+          for INSTANCE_ID in $INSTANCE_IDS; do
+            echo "=========================================="
+            echo "Checking Instance: $INSTANCE_ID"
 
-  #         COMMAND_ID=$(aws ssm send-command \
-  #           --instance-ids "$INSTANCE_ID" \
-  #           --document-name "AWS-RunShellScript" \
-  #           --parameters '{"commands":["cd /var/abacus-projects/simple-react-full-stack","pm2 restart node-app-1"]}' \
-  #           --query "Command.CommandId" \
-  #           --output text)
+            aws ssm wait command-executed \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" || true
 
-  #         echo "Command ID: $COMMAND_ID"
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "Status" \
+              --output text)
 
-  #         aws ssm wait command-executed \
-  #           --command-id "$COMMAND_ID" \
-  #           --instance-id "$INSTANCE_ID" || true
+            echo "Status: $STATUS"
+            echo "----- OUTPUT -----"
+            aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "StandardOutputContent" \
+              --output text
 
-  #         STATUS=$(aws ssm get-command-invocation \
-  #           --command-id "$COMMAND_ID" \
-  #           --instance-id "$INSTANCE_ID" \
-  #           --query "Status" \
-  #           --output text)
+            if [ "$STATUS" != "Success" ]; then
+              echo "----- ERROR OUTPUT -----"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardErrorContent" \
+                --output text
+              HAS_ERROR=1
+            fi
+          done
 
-  #         echo "Status: $STATUS"
-  #         echo "----- OUTPUT -----"
-  #         aws ssm get-command-invocation \
-  #           --command-id "$COMMAND_ID" \
-  #           --instance-id "$INSTANCE_ID" \
-  #           --query "StandardOutputContent" \
-  #           --output text
-
-  #         if [ "$STATUS" != "Success" ]; then
-  #           echo "----- ERROR OUTPUT -----"
-  #           aws ssm get-command-invocation \
-  #             --command-id "$COMMAND_ID" \
-  #             --instance-id "$INSTANCE_ID" \
-  #             --query "StandardErrorContent" \
-  #             --output text
-  #           exit 1
-  #         fi
+          if [ "$HAS_ERROR" -ne 0 ]; then
+            echo "Deployment failed on one or more instances."
+            exit 1
+          fi
