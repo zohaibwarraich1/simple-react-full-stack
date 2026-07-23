@@ -121,7 +121,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids $INSTANCE_IDS \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["cd /var/abacus-projects/simple-react-full-stack","pm2 restart node-app-1 || pm2 start src/server/index.js --name node-app-1"]}' \
+            --parameters '{"commands":["sudo -i -u ubuntu bash -c \"cd /var/abacus-projects/simple-react-full-stack && (pm2 restart node-app-1 || pm2 start src/server/index.js --name node-app-1)\""]}' \
             --query "Command.CommandId" \
             --output text)
 
