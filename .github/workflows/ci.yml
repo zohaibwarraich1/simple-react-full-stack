@@ -85,7 +85,7 @@ jobs:
       - name: Check Health Endpoint
         run: |
           # Consider changing the IP if it needs to match your EC2 instance dynamically
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://3.110.215.138/node-app-1/api/health)
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://43.205.235.148/node-app-1/api/health)
           echo "Received status code: $STATUS_CODE"
           
           if [ "$STATUS_CODE" -eq 500 ]; then
