@@ -38,7 +38,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["cd /var/abacus-projects/simple-react-full-stack","git pull origin master","npm install","npm run build"]}' \
+            --parameters '{"commands":["sudo -i -u ubuntu bash -c \"cd /var/abacus-projects/simple-react-full-stack && git pull origin master && npm install && npm run build\""]}' \
             --query "Command.CommandId" \
             --output text)
 
