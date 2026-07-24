@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  web:
+    image: 399894608127.dkr.ecr.ap-south-1.amazonaws.com/node-app-1:latest
+    container_name: node-app-1
+    pull_policy: always
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - node-app-1-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]  
+      interval: 30s
+      timeout: 7s
+      retries: 5
+      start_period: 60s
+networks:
+  node-app-1-network:

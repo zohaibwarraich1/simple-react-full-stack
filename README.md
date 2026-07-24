@@ -1,246 +1,443 @@
-# simple-react-full-stack
+# cdebug - a swiss army knife of container debugging
 
-[![Build Status](https://travis-ci.org/crsandeep/simple-react-full-stack.svg?branch=master)](https://travis-ci.org/crsandeep/simple-react-full-stack)
-
-This is a boilerplate to build a full stack web application using React, Node.js, Express and Webpack. It is also configured with webpack-dev-server, eslint, prettier and babel.
-
-- [simple-react-full-stack](#simple-react-full-stack)
-  - [Introduction](#introduction)
-    - [Development mode](#development-mode)
-    - [Production mode](#production-mode)
-  - [Quick Start](#quick-start)
-  - [Documentation](#documentation)
-    - [Folder Structure](#folder-structure)
-    - [Babel](#babel)
-    - [ESLint](#eslint)
-    - [Webpack](#webpack)
-    - [Webpack dev server](#webpack-dev-server)
-    - [Nodemon](#nodemon)
-    - [Express](#express)
-    - [Concurrently](#concurrently)
-    - [VSCode + ESLint + Prettier](#vscode--eslint--prettier)
-      - [Installation guide](#installation-guide)
-
-## Introduction
-
-[Create React App](https://github.com/facebook/create-react-app) is a quick way to get started with React development and it requires no build configuration. But it completely hides the build config which makes it difficult to extend. It also requires some additional work to integrate it with an existing Node.js/Express backend application.
-
-This is a simple full stack [React](https://reactjs.org/) application with a [Node.js](https://nodejs.org/en/) and [Express](https://expressjs.com/) backend. Client side code is written in React and the backend API is written using Express. This application is configured with [Airbnb's ESLint rules](https://github.com/airbnb/javascript) and formatted through [prettier](https://prettier.io/).
-
-### Development mode
-
-In the development mode, we will have 2 servers running. The front end code will be served by the [webpack dev server](https://webpack.js.org/configuration/dev-server/) which helps with hot and live reloading. The server side Express code will be served by a node server using [nodemon](https://nodemon.io/) which helps in automatically restarting the server whenever server side code changes.
-
-### Production mode
-
-In the production mode, we will have only 1 server running. All the client side code will be bundled into static files using webpack and it will be served by the Node.js/Express application.
-
-## Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/crsandeep/simple-react-full-stack
-
-# Go inside the directory
-cd simple-react-full-stack
-
-# Install dependencies
-yarn (or npm install)
-
-# Start development server
-yarn dev (or npm run dev)
-
-# Build for production
-yarn build (or npm run build)
-
-# Start production server
-yarn start (or npm start)
+```diff
+! Support development of this project > patreon.com/iximiuz
 ```
 
-## Documentation
+With this tool you can:
 
-### Folder Structure
+- Troubleshoot containers and pods lacking shell and/or debugging tools.
+- Forward unpublished or even localhost ports to your host system.
+- Expose endpoints from the host system to containers & Kubernetes networks.
+- Handily export image's and/or container's filesystem to local folders.
+- and more :)
 
-All the source code will be inside **src** directory. Inside src, there is client and server directory. All the frontend code (react, css, js and any other assets) will be in client directory. Backend Node.js/Express code will be in the server directory.
+The following _commands_ x _runtimes_ are supported:
 
-### Babel
+|                       | Docker | Podman | containerd | OCI (runc, crun) | Kubernetes | CRI    |
+| :---                  | :---:  | :---:  | :---:      | :---:            | :---:      | :---:  |
+| `exec`                | ✅     | -      | ✅         | -                | ✅          | -      |
+| `port-forward` local  | ✅     | -      | -          | -                | -          | -      |
+| `port-forward` remote | 🛠️      | -      | -          | -                | -          | -      |
+| `export`              | -      | -      | -          | -                | -          | -      |
 
-[Babel](https://babeljs.io/) helps us to write code in the latest version of JavaScript. If an environment does not support certain features natively, Babel will help us to compile those features down to a supported version. It also helps us to convert JSX to Javascript.
+## Installation
 
-[.babelrc file](https://babeljs.io/docs/usage/babelrc/) is used describe the configurations required for Babel. Below is the .babelrc file which I am using.
+It's a statically linked Go binary, so you know the drill:
 
-```javascript
-{
-    "presets": ["env", "react"]
-}
+```sh
+GOOS=linux
+GOARCH=amd64
+
+curl -Ls https://github.com/iximiuz/cdebug/releases/latest/download/cdebug_${GOOS}_${GOARCH}.tar.gz | tar xvz
+
+sudo mv cdebug /usr/local/bin
 ```
 
-Babel requires plugins to do the transformation. Presets are the set of plugins defined by Babel. Preset **env** allows to use babel-preset-es2015, babel-preset-es2016, and babel-preset-es2017 and it will transform them to ES5. Preset **react** allows us to use JSX syntax and it will transform JSX to Javascript.
+### Homebrew
 
-### ESLint
+If you're a [Homebrew](https://brew.sh/) user, you can install the tool via brew on macOS or Linux:
 
-[ESLint](https://eslint.org/) is a pluggable and configurable linter tool for identifying and reporting on patterns in JavaScript.
-
-[.eslintrc.json file](<(https://eslint.org/docs/user-guide/configuring)>) (alternatively configurations can we written in Javascript or YAML as well) is used describe the configurations required for ESLint. Below is the .eslintrc.json file which I am using.
-
-```javascript
-{
-  "extends": ["airbnb"],
-  "env": {
-    "browser": true,
-    "node": true
-  },
-  "rules": {
-    "no-console": "off",
-    "comma-dangle": "off",
-    "react/jsx-filename-extension": "off"
-  }
-}
+```sh
+$ brew install cdebug
 ```
 
-[I am using Airbnb's Javascript Style Guide](https://github.com/airbnb/javascript) which is used by many JavaScript developers worldwide. Since we are going to write both client (browser) and server side (Node.js) code, I am setting the **env** to browser and node. Optionally, we can override the Airbnb's configurations to suit our needs. I have turned off [**no-console**](https://eslint.org/docs/rules/no-console), [**comma-dangle**](https://eslint.org/docs/rules/comma-dangle) and [**react/jsx-filename-extension**](https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-filename-extension.md) rules.
+At the moment, the following systems are (kinda sorta) supported:
 
-### Webpack
+- linux/amd64
+- darwin/amd64
+- darwin/arm64
 
-[Webpack](https://webpack.js.org/) is a module bundler. Its main purpose is to bundle JavaScript files for usage in a browser.
+## Commands
 
-[webpack.config.js](https://webpack.js.org/configuration/) file is used to describe the configurations required for webpack. Below is the webpack.config.js file which I am using.
+### cdebug exec
 
-```javascript
-const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const CleanWebpackPlugin = require("clean-webpack-plugin");
+Execute commands or start interactive shells in scratch, slim, or distroless containers, with ease:
 
-const outputDirectory = "dist";
+```sh
+# Start a busybox:musl shell in the Docker container:
+cdebug exec -it mycontainer
+cdebug exec -it docker://mycontainer
 
-module.exports = {
-  entry: ["babel-polyfill", "./src/client/index.js"],
-  output: {
-    path: path.join(__dirname, outputDirectory),
-    filename: "bundle.js"
-  },
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: "babel-loader"
-        }
-      },
-      {
-        test: /\.css$/,
-        use: ["style-loader", "css-loader"]
-      },
-      {
-        test: /\.(png|woff|woff2|eot|ttf|svg)$/,
-        loader: "url-loader?limit=100000"
-      }
-    ]
-  },
-  devServer: {
-    port: 3000,
-    open: true,
-    proxy: {
-      "/api": "http://localhost:8080"
-    }
-  },
-  plugins: [
-    new CleanWebpackPlugin([outputDirectory]),
-    new HtmlWebpackPlugin({
-      template: "./public/index.html",
-      favicon: "./public/favicon.ico"
-    })
-  ]
-};
+# Execute a command in the Docker container:
+cdebug exec mycontainer cat /etc/os-release
+
+# Use a different debugging toolkit image:
+cdebug exec -it --image=alpine mycontainer
+
+# Use a nixery.dev image (https://nixery.dev/):
+cdebug exec -it --image=nixery.dev/shell/vim/ps/tshark mycontainer
+
+# Exec into a containerd container:
+cdebug exec -it containerd://mycontainer ...
+cdebug exec --namespace myns -it containerd://mycontainer ...
+
+# Exec into a nerdctl container:
+cdebug exec -it nerdctl://mycontainer ...
+
+# Start a shell in a Kubernetes pod:
+cdebug exec -it pod/mypod
+cdebug exec -it k8s://mypod
+cdebug exec --namespace=myns -it pod/mypod
+
+# Start a shell in a Kubernetes pod's container:
+cdebug exec -it pod/mypod/mycontainer
 ```
 
-1.  **entry:** entry: ./src/client/index.js is where the application starts executing and webpack starts bundling.
-    Note: babel-polyfill is added to support async/await. Read more [here](https://babeljs.io/docs/en/babel-polyfill#usage-in-node-browserify-webpack).
-2.  **output path and filename:** the target directory and the filename for the bundled output
-3.  **module loaders:** Module loaders are transformations that are applied on the source code of a module. We pass all the js file through [babel-loader](https://github.com/babel/babel-loader) to transform JSX to Javascript. CSS files are passed through [css-loaders](https://github.com/webpack-contrib/css-loader) and [style-loaders](https://github.com/webpack-contrib/style-loader) to load and bundle CSS files. Fonts and images are loaded through url-loader.
-4.  **Dev Server:** Configurations for the webpack-dev-server which will be described in coming section.
-5.  **plugins:** [clean-webpack-plugin](https://github.com/johnagan/clean-webpack-plugin) is a webpack plugin to remove the build folder(s) before building. [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) simplifies creation of HTML files to serve your webpack bundles. It loads the template (public/index.html) and injects the output bundle.
+The `cdebug exec` command is a crossbreeding of `docker exec` and `kubectl debug` commands.
+You point the tool at a running container, say what toolkit image to use, and it starts
+a debugging "sidecar" container that _feels_ like a `docker exec` session to the target container:
 
-### Webpack dev server
+- The root filesystem of the debugger **_is_** the root filesystem of the target container.
+- The target container isn't recreated and/or restarted.
+- No extra volumes or copying of debugging tools is needed.
+- The debugging tools **_are_** available in the target container.
 
-[Webpack dev server](https://webpack.js.org/configuration/dev-server/) is used along with webpack. It provides a development server that provides live reloading for the client side code. This should be used for development only.
+By default, the `busybox:musl` (statically compiled) image is used for the debugger sidecar, but you can override it
+with the `--image` flag. Combining this with the superpower of Nix and [Nixery](https://nixery.dev/),
+you can get all your favorite tools by simply listing them in the image name:
 
-The devServer section of webpack.config.js contains the configuration required to run webpack-dev-server which is given below.
-
-```javascript
-devServer: {
-    port: 3000,
-    open: true,
-    proxy: {
-        "/api": "http://localhost:8080"
-    }
-}
+```
+cdebug exec -it --image nixery.dev/shell/ps/vim/tshark <target-container>
 ```
 
-[**Port**](https://webpack.js.org/configuration/dev-server/#devserver-port) specifies the Webpack dev server to listen on this particular port (3000 in this case). When [**open**](https://webpack.js.org/configuration/dev-server/#devserver-open) is set to true, it will automatically open the home page on startup. [Proxying](https://webpack.js.org/configuration/dev-server/#devserver-proxy) URLs can be useful when we have a separate API backend development server and we want to send API requests on the same domain. In our case, we have a Node.js/Express backend where we want to send the API requests to.
+<details>
+<summary>How it works</summary>
 
-### Nodemon
+The technique is based on the ideas from this [blog post](https://iximiuz.com/en/posts/docker-debug-slim-containers).
 
-Nodemon is a utility that will monitor for any changes in the server source code and it automatically restart the server. This is used in development only.
+![How: cdebug exec](assets/images/cdebug-exec.png)
 
-nodemon.json file is used to describe the configurations for Nodemon. Below is the nodemon.json file which I am using.
+Oversimplifying, the debugger container is started like:
 
-```javascript
-{
-  "watch": ["src/server/"]
-}
+```sh
+docker run [-it] \
+  --network container:<target> \
+  --pid container:<target> \
+  --uts container:<target> \
+  <toolkit-image>
+  sh -c <<EOF
+ln -s /proc/$$/root/bin/ /proc/1/root/.cdebug
+
+export PATH=$PATH:/.cdebug
+chroot /proc/1/root sh
+EOF
 ```
 
-Here, we tell nodemon to watch the files in the directory src/server where out server side code resides. Nodemon will restart the node server whenever a file under src/server directory is modified.
+The secret sauce is the symlink + PATH modification + chroot-ing.
 
-### Express
+</details>
 
-Express is a web application framework for Node.js. It is used to build our backend API's.
+### cdebug port-forward
 
-src/server/index.js is the entry point to the server application. Below is the src/server/index.js file
+Forward local ports to containers and vice versa. This command is another crossbreeding -
+this time it's `kubectl port-forward` and `ssh -L|-R`.
 
-```javascript
-const express = require("express");
-const os = require("os");
+Currently, only local port forwarding (`cdebug port-forward -L`) is supported,
+but remote port forwarding is under active development.
 
-const app = express();
+Local port forwarding use cases (works for Docker Desktop too!):
 
-app.use(express.static("dist"));
-app.get("/api/getUsername", (req, res) =>
-  res.send({ username: os.userInfo().username })
-);
-app.listen(8080, () => console.log("Listening on port 8080!"));
+- Publish "unpublished" port 80 to a random port on the host: `cdebug port-forward <target> -L 80`
+- Expose container's localhost to the host system: `cdebug port-forward <target> -L 127.0.0.1:5432`
+- Proxy local traffic to a remote host via the target: `cdebug port-forward <target> -L <LOCAL_HOST>:<LOCAL_PORT>:<REMOTE_HOST>:<REMOTE_PORT>`
+- 🛠️ Expose a Kubernetes service to the host system: `cdebug port-forward <target> -L 8888:my.svc.cluster.local:443`
+
+Remote port forwarding use cases:
+
+- Start a container/Pod forwarding traffic destined to its `<IP>:<port>` to a non-cluster endpoint reachable from the host system.
+- ...
+
+<details>
+<summary>How it works</summary>
+
+**Local port forwarding** is implemented by starting an extra forwarder container in the
+target's network and publishing its ports to the host using the standard means (e.g.,
+`docker run --publish`). The forwarder container itself runs something like:
+
+`socat TCP-LISTEN:<REMOTE_PORT>,fork TCP-CONNECT:<REMOTE_HOST>:<REMOTE_PORT>`
+
+![How: cdebug port-forward -L (direct)](assets/images/cdebug-port-forward-local-direct.png)
+
+If the _REMOTE_HOST_ doesn't belong to the target or it's the target's localhost,
+an extra sidecar container is started in the target's network namespace with another
+socat forwarding traffic from the target public interface to `REMOTE_HOST:REMOTE_PORT`.
+
+![How: cdebug port-forward -L (sidecar)](assets/images/cdebug-port-forward-local-sidecar.png)
+
+**Remote port forwarding** will use similar tricks but combined with more advanced
+reverse tunneling.
+
+</details>
+
+## Examples
+
+Below are a few popular scenarios formatted as reproducible demos.
+
+### A simple interactive shell to a distroless container
+
+First, a target container is needed. Let's use a distroless nodejs image for that:
+
+```sh
+$ docker run -d --rm \
+  --name my-distroless gcr.io/distroless/nodejs \
+  -e 'setTimeout(() => console.log("Done"), 99999999)'
 ```
 
-This starts a server and listens on port 8080 for connections. The app responds with `{username: <username>}` for requests to the URL (/api/getUsername). It is also configured to serve the static files from **dist** directory.
+Now, let's start an interactive shell (using busybox) into the above container:
 
-### Concurrently
-
-[Concurrently](https://github.com/kimmobrunfeldt/concurrently) is used to run multiple commands concurrently. I am using it to run the webpack dev server and the backend node server concurrently in the development environment. Below are the npm/yarn script commands used.
-
-```javascript
-"client": "webpack-dev-server --mode development --devtool inline-source-map --hot",
-"server": "nodemon src/server/index.js",
-"dev": "concurrently \"npm run server\" \"npm run client\""
+```sh
+$ cdebug exec -it my-distroless
 ```
 
-### VSCode + ESLint + Prettier
+Exploring the filesystem shows that it's a rootfs of the nodejs container:
 
-[VSCode](https://code.visualstudio.com/) is a lightweight but powerful source code editor. [ESLint](https://eslint.org/) takes care of the code-quality. [Prettier](https://prettier.io/) takes care of all the formatting.
+```sh
+/ $# ls -lah
+total 60K
+drwxr-xr-x    1 root     root        4.0K Oct 17 23:49 .
+drwxr-xr-x    1 root     root        4.0K Oct 17 23:49 ..
+👉 lrwxrwxrwx 1 root     root          18 Oct 17 23:49 .cdebug-c153d669 -> /proc/55/root/bin/
+-rwxr-xr-x    1 root     root           0 Oct 17 19:49 .dockerenv
+drwxr-xr-x    2 root     root        4.0K Jan  1  1970 bin
+drwxr-xr-x    2 root     root        4.0K Jan  1  1970 boot
+drwxr-xr-x    5 root     root         340 Oct 17 19:49 dev
+drwxr-xr-x    1 root     root        4.0K Oct 17 19:49 etc
+drwxr-xr-x    3 nonroot  nonroot     4.0K Jan  1  1970 home
+drwxr-xr-x    1 root     root        4.0K Jan  1  1970 lib
+drwxr-xr-x    2 root     root        4.0K Jan  1  1970 lib64
+drwxr-xr-x    5 root     root        4.0K Jan  1  1970 nodejs
+...
+```
 
-#### Installation guide
+Notice 👉  above - that's where the debugging tools live:
 
-1.  Install [VSCode](https://code.visualstudio.com/)
-2.  Install [ESLint extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-3.  Install [Prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-4.  Modify the VSCode user settings to add below configuration
+```sh
+/ $# echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/.cdebug-c153d669
+```
 
-    ```javascript
-    "eslint.alwaysShowStatus": true,
-    "eslint.autoFixOnSave": true,
-    "editor.formatOnSave": true,
-    "prettier.eslintIntegration": true
-    ```
+The process tree of the debugger container is the process tree of the target:
 
-Above, we have modified editor configurations. Alternatively, this can be configured at the project level by following [this article](https://medium.com/@netczuk/your-last-eslint-config-9e35bace2f99).
+```sh
+/ $# ps auxf
+PID   USER     TIME  COMMAND
+    1 root      0:00 /nodejs/bin/node -e setTimeout(() => console.log("Done"),
+   13 root      0:00 sh -c  set -euo pipefail  sleep 999999999 & SANDBOX_PID=$!
+   19 root      0:00 sleep 999999999
+   21 root      0:00 sh
+   28 root      0:00 [sleep]
+   39 root      0:00 [sleep]
+   45 root      0:00 ps auxf
+```
+
+### An interactive shell with code editor (vim)
+
+If the tools provided by busybox aren't enough, you can bring your own tools with
+a ~~little~~ huge help of the [nixery](https://nixery.dev/) project:
+
+```sh
+$ cdebug exec -it --image nixery.dev/shell/vim my-distroless
+```
+
+### An interactive shell with tshark and other advanced tools
+
+Even more powerful exammple:
+
+```sh
+$ cdebug exec -it --image nixery.dev/shell/ps/findutils/tshark my-distroless
+```
+
+### Debugging containerd containers (no Docker required)
+
+First, start the target container:
+
+```sh
+$ sudo ctr image pull docker.io/library/nginx:latest
+$ sudo ctr run -d docker.io/library/nginx:latest nginx-1
+```
+
+Run an interactive shell in the target container using simple `cdebug exec`:
+
+```
+$ sudo cdebug exec -it containerd://nginx-1
+/ $# wget -O- 127.0.0.1
+```
+
+Run VIM in the target container using `cdebug exec --image nixery.dev/shell/vim`:
+
+```sh
+$ sudo cdebug exec -it --rm --image nixery.dev/shell/vim containerd://nginx-1
+```
+
+### Debugging nerdctl containers (no Docker required)
+
+Start a container using nerdctl:
+
+```sh
+$ sudo $(which nerdctl) run -d --name nginx-1 nginx
+9f8763d82259a6e3e747df83d0ce8b7ee3d33d94269a72cd04e0e3862a3abc5f
+```
+
+Run the debugger using the `nerdctl://` schema and the target's name:
+
+```sh
+$ sudo cdebug exec -it --rm nerdctl://nginx-1
+```
+
+Or run a debugging session in the above container using the `containerd://` schema:
+
+```sh
+$ sudo cdebug exec -it --rm containerd://9f876
+```
+
+### Debugging Kubernetes Pods (without node access)
+
+Start the target Pod:
+
+```sh
+$ kubectl run --image nginx:alpine nginx-1
+$ kubectl run --image=nginx:alpine nginx-1 \
+  --overrides='{ "apiVersion": "v1", "spec": { "containers": [{ "name": "app", "image": "nginx:alpine" }] } }'
+pod/nginx-1 created
+
+$ kubectl get pods
+NAME    READY   STATUS    RESTARTS   AGE
+nginx-1   1/1     Running   0         5s
+```
+
+Run the debugger in the Pod (it'll start a new ephemeral container):
+
+```sh
+$ cdebug exec -it pod/nginx-1
+```
+
+Expected output:
+
+```text
+Debugger container name: cdebug-3023d11d
+Starting debugger container...
+Waiting for debugger container...
+Attaching to debugger container...
+If you don't see a command prompt, try pressing enter.
+/ # ps auxf
+PID   USER     TIME  COMMAND
+    1 root      0:00 sh /.cdebug-entrypoint.sh
+   10 root      0:00 /bin/sh -i
+   11 root      0:00 ps auxf
+```
+
+Run the debugger in the Nginx container (`app`):
+
+```sh
+$ cdebug exec -it pod/nginx-1/app
+```
+
+```text
+cdebug exec -it pod/nginx-1/app
+Debugger container name: cdebug-b44ca485
+Starting debugger container...
+Waiting for debugger container...
+Attaching to debugger container...
+If you don't see a command prompt, try pressing enter.
+/ # ps auxf
+PID   USER     TIME  COMMAND
+    1 root      0:00 nginx: master process nginx -g daemon off;
+   30 nginx     0:00 nginx: worker process
+   ...
+   41 nginx     0:00 nginx: worker process
+   42 root      0:00 sh /.cdebug-entrypoint.sh
+   51 root      0:00 /bin/ash -i
+   52 root      0:00 ps auxf
+```
+
+### Debugging Kubernetes Pods (with node access)
+
+Currently, only containerd CRI is supported. First, you'll need to list the running
+containers:
+
+```sh
+$ ctr -n k8s.io container ls
+CONTAINER       IMAGE                                       RUNTIME
+155227c0e9aa8   k8s.gcr.io/pause:3.5                        io.containerd.runc.v2
+2220eacd9cb26   registry.k8s.io/kube-apiserver:v1.25.3      io.containerd.runc.v2
+22efcb35a651a   registry.k8s.io/etcd:3.5.4-0                io.containerd.runc.v2
+28e06cc63b822   docker.io/calico/cni:v3.24.1                io.containerd.runc.v2
+30754c8492f18   docker.io/calico/node:v3.24.1               io.containerd.runc.v2
+61acdb0231516   docker.io/calico/kube-controllers:v3.24.1   io.containerd.runc.v2
+...
+```
+
+Now you can exec into a Pod's container bringing your own debugging tools:
+
+```sh
+$ cdebug exec -n k8s.io -it --rm containerd://2220ea
+```
+
+### Publish "forgotten" port
+
+Start an nginx container but don't expose its port 80:
+
+```sh
+$ docker run -d --name nginx-1 nginx:1.23
+```
+
+Forward local port 8080 to the nginx's 80:
+
+```sh
+$ cdebug port-forward nginx-1 -L 8080:80
+$ curl localhost:8080
+```
+
+### Expose localhost's ports
+
+Start a containerized service that listens only on its localhost:
+
+```sh
+$ docker run -d --name svc-1 python:3-alpine python3 -m 'http.server' -b 127.0.0.1 8888
+```
+
+Tap into the above service:
+
+```sh
+$ cdebug port-forward svc-1 -L 127.0.0.1:8888
+Pulling forwarder image...
+latest: Pulling from shell/socat
+Digest: sha256:b43b6cf8d22615616b13c744b8ff525f5f6c0ca6c11b37fa3832a951ebb3c20c
+Status: Image is up to date for nixery.dev/shell/socat:latest
+Forwarding 127.0.0.1:49176 to 127.0.0.1:8888 through 172.17.0.4:34128
+
+$ curl localhost:49176
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+...
+```
+
+## F.A.Q
+
+**Q:** `cdebug exec` fails with `ln: /proc/1/root/...: Permission denied` or the like error?
+
+Non-privileged targets can cause this error because by default, `cdebug` tries to start the debugger container with the same privileges as the target container. Try `cdebug exec --privileged` instead.
+
+## Similar tools
+
+- [`slim debug`](https://github.com/slimtoolkit/slim) - a `debug` command for Slim(toolkit) (originally contributed by [D4N](https://github.com/D4N))
+- [`debug-ctr`](https://github.com/felipecruz91/debug-ctr) - a debugger that creates a new container out of the original container with the toolkit mounted in a volume (by [Felipe Cruz Martinez](https://github.com/felipecruz91))
+- [`docker-debug`](https://github.com/zeromake/docker-debug) - much like `cdebug exec` but without the chroot trick.
+- [`docker-opener`](https://github.com/artemkaxboy/docker-opener) - a multi-purpose tool that in particular can run a shell session into your container (and if there is no shell inside, it'll bring its own busybox).
+- [`cntr`](https://github.com/Mic92/cntr) - is "a replacement for `docker exec` that brings all your developers tools with you" by mounting the file system from one container (or the host) into the target container and creating a nested container with the help of a FUSE filesystem. Supports a huge range of runtimes (docker, podman, LXC/LXD, rkt, systemd-nspawn, containerd) because it operates on the OS level.
+- [`kdiag`](https://github.com/solo-io/kdiag) - a kubectl plugin to get shell access to scratch containers, stream logs from multiple pods simultaneously, and do reverse port forwarding to Kubernetes clusters.
+
+- [`kpexec`](https://github.com/ssup2/kpexec) - a CLI that runs commands in a Kubernetes container with high privileges (via a privileged Pod with Node access).
+
+## TODO:
+
+- More `exec` flags (like in `docker run`): `--cap-add`, `--cap-drop`, `--env`, `--volume`, etc.
+- Helper command(s) suggesting nix(ery) packages
+- Non-docker runtimes (Podman, CRI, OCI)
+- More E2E Tests
+
+## Contributions
+
+It's a pre-alpha with no sound design yet, so I may not be accepting all PRs. Sorry about that :)
